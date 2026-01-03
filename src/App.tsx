@@ -1,9 +1,7 @@
+import { MoodTracker } from "@/components/mood-tracker/MoodTracker";
+
 export function App() {
-  return (
-    <div className="flex items-center justify-center min-h-screen">
-      <div className="font-medium">Hello World</div>
-    </div>
-  )
+    return <MoodTracker />;
 }
 
-export default App
+export default App;
