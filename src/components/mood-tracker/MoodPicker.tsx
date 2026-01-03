@@ -6,11 +6,21 @@ import { MoodIcon } from './MoodIcon';
 
 interface MoodPickerProps {
     selectedMood: MoodType | null;
+    comment: string;
     onSelect: (mood: MoodType | null) => void;
+    onCommentChange: (comment: string) => void;
+    onSave: () => void;
     date: Date;
 }
 
-export function MoodPicker({ selectedMood, onSelect, date }: MoodPickerProps) {
+export function MoodPicker({
+    selectedMood,
+    comment,
+    onSelect,
+    onCommentChange,
+    onSave,
+    date
+}: MoodPickerProps) {
     const formattedDate = date.toLocaleDateString('en-US', {
         weekday: 'long',
         month: 'long',
@@ -49,15 +59,39 @@ export function MoodPicker({ selectedMood, onSelect, date }: MoodPickerProps) {
                 ))}
             </div>
 
+            {/* Comment input */}
             {selectedMood && (
-                <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onSelect(null)}
-                    className="text-muted-foreground"
-                >
-                    Clear mood
-                </Button>
+                <div className="flex flex-col gap-2">
+                    <label htmlFor="mood-comment" className="text-xs text-muted-foreground">
+                        Add a note (optional)
+                    </label>
+                    <textarea
+                        id="mood-comment"
+                        value={comment}
+                        onChange={(e) => onCommentChange(e.target.value)}
+                        placeholder="How was your day?"
+                        className={cn(
+                            "w-full min-h-[80px] px-3 py-2 text-sm rounded-lg resize-none",
+                            "bg-muted/50 border border-border",
+                            "placeholder:text-muted-foreground/50",
+                            "focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                        )}
+                    />
+                </div>
+            )}
+
+            {selectedMood && (
+                <div className="flex items-center gap-2">
+                    <Button onClick={onSave}>
+                        Save
+                    </Button>
+                    <Button
+                        variant="outline"
+                        onClick={() => onSelect(null)}
+                    >
+                        Clear
+                    </Button>
+                </div>
             )}
         </div>
     );

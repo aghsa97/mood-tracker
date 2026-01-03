@@ -3,7 +3,12 @@ import { cn } from '@/lib/utils';
 import type { MoodType } from '@/types';
 import { formatDateKey } from '@/types';
 import { Button } from '@/components/ui/button';
+import {
+    Dialog,
+    DialogContent,
+} from '@/components/ui/dialog';
 import { MoodPicker } from './MoodPicker';
+import { MoodIcon } from './MoodIcon';
 import { HugeiconsIcon } from '@hugeicons/react';
 import {
     ArrowLeft01Icon,
@@ -12,7 +17,8 @@ import {
 
 interface MoodCalendarProps {
     getMood: (date: Date) => MoodType | null;
-    setMood: (date: Date, mood: MoodType | null) => void;
+    getComment: (date: Date) => string;
+    setMood: (date: Date, mood: MoodType | null, comment?: string) => void;
 }
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -21,9 +27,11 @@ const MONTHS = [
     'July', 'August', 'September', 'October', 'November', 'December',
 ];
 
-export function MoodCalendar({ getMood, setMood }: MoodCalendarProps) {
+export function MoodCalendar({ getMood, getComment, setMood }: MoodCalendarProps) {
     const [currentDate, setCurrentDate] = React.useState(new Date());
     const [selectedDay, setSelectedDay] = React.useState<Date | null>(null);
+    const [pendingMood, setPendingMood] = React.useState<MoodType | null>(null);
+    const [pendingComment, setPendingComment] = React.useState('');
 
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
@@ -67,13 +75,34 @@ export function MoodCalendar({ getMood, setMood }: MoodCalendarProps) {
 
     const handleDayClick = (date: Date) => {
         if (date > today) return; // Don't allow future dates
-        setSelectedDay(selectedDay && formatDateKey(selectedDay) === formatDateKey(date) ? null : date);
+        if (selectedDay && formatDateKey(selectedDay) === formatDateKey(date)) {
+            setSelectedDay(null);
+            setPendingMood(null);
+            setPendingComment('');
+        } else {
+            setSelectedDay(date);
+            setPendingMood(getMood(date));
+            setPendingComment(getComment(date));
+        }
     };
 
     const handleMoodSelect = (mood: MoodType | null) => {
-        if (selectedDay) {
-            setMood(selectedDay, mood);
+        if (mood === null && selectedDay) {
+            setMood(selectedDay, null);
             setSelectedDay(null);
+            setPendingMood(null);
+            setPendingComment('');
+        } else {
+            setPendingMood(mood);
+        }
+    };
+
+    const handleSave = () => {
+        if (selectedDay && pendingMood) {
+            setMood(selectedDay, pendingMood, pendingComment);
+            setSelectedDay(null);
+            setPendingMood(null);
+            setPendingComment('');
         }
     };
 
@@ -143,8 +172,15 @@ export function MoodCalendar({ getMood, setMood }: MoodCalendarProps) {
                                 isSelected && 'ring-2 ring-primary',
                                 !mood && !dayIsFuture && 'bg-muted/50 hover:bg-muted'
                             )}
-                            style={mood ? { backgroundColor: `var(--mood-${mood})` } : undefined}
+                            style={mood ? { backgroundColor: `color-mix(in oklch, var(--mood-${mood}) 50%, transparent)` } : undefined}
                         >
+                            {mood && (
+                                <MoodIcon
+                                    mood={mood}
+                                    size={12}
+                                    className="absolute top-1 right-1 text-foreground/70"
+                                />
+                            )}
                             <span
                                 className={cn(
                                     'text-sm font-medium',
@@ -159,16 +195,27 @@ export function MoodCalendar({ getMood, setMood }: MoodCalendarProps) {
                 })}
             </div>
 
-            {/* Mood picker popover */}
-            {selectedDay && (
-                <div className="mt-2 p-4 bg-card rounded-xl ring-1 ring-border animate-in fade-in slide-in-from-top-2 duration-200">
-                    <MoodPicker
-                        selectedMood={getMood(selectedDay)}
-                        onSelect={handleMoodSelect}
-                        date={selectedDay}
-                    />
-                </div>
-            )}
+            {/* Mood picker dialog */}
+            <Dialog open={!!selectedDay} onOpenChange={(open) => {
+                if (!open) {
+                    setSelectedDay(null);
+                    setPendingMood(null);
+                    setPendingComment('');
+                }
+            }}>
+                <DialogContent>
+                    {selectedDay && (
+                        <MoodPicker
+                            selectedMood={pendingMood}
+                            comment={pendingComment}
+                            onSelect={handleMoodSelect}
+                            onCommentChange={setPendingComment}
+                            onSave={handleSave}
+                            date={selectedDay}
+                        />
+                    )}
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

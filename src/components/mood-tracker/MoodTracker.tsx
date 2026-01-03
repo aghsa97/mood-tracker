@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/card';
 
 export function MoodTracker() {
-    const { getMood, setMood, getStats } = useMoodData();
+    const { getMood, getComment, setMood, getStats } = useMoodData();
 
     return (
         <div className="min-h-screen bg-background">
@@ -34,7 +34,7 @@ export function MoodTracker() {
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <MoodCalendar getMood={getMood} setMood={setMood} />
+                            <MoodCalendar getMood={getMood} getComment={getComment} setMood={setMood} />
                         </CardContent>
                     </Card>
 

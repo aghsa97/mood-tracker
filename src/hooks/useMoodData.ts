@@ -4,15 +4,34 @@ import { formatDateKey } from "@/types";
 
 const STORAGE_KEY = "mood-tracker-data";
 
+interface DayEntry {
+  mood: MoodType;
+  comment?: string;
+}
+
 interface MoodData {
-  entries: Record<string, MoodType>;
+  entries: Record<string, DayEntry>;
 }
 
 const loadData = (): MoodData => {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
-      return JSON.parse(stored);
+      const parsed = JSON.parse(stored);
+      // Migration: convert old format (string) to new format (object)
+      if (parsed.entries) {
+        const migrated: Record<string, DayEntry> = {};
+        for (const [key, value] of Object.entries(parsed.entries)) {
+          if (typeof value === "string") {
+            // Old format: just mood string
+            migrated[key] = { mood: value as MoodType };
+          } else {
+            // New format: object with mood and comment
+            migrated[key] = value as DayEntry;
+          }
+        }
+        return { entries: migrated };
+      }
     }
   } catch (e) {
     console.error("Failed to load mood data:", e);
@@ -39,21 +58,49 @@ export function useMoodData() {
   const getMood = useCallback(
     (date: Date): MoodType | null => {
       const key = formatDateKey(date);
-      return data.entries[key] || null;
+      return data.entries[key]?.mood || null;
     },
     [data.entries]
   );
 
-  const setMood = useCallback((date: Date, mood: MoodType | null) => {
+  const getComment = useCallback(
+    (date: Date): string => {
+      const key = formatDateKey(date);
+      return data.entries[key]?.comment || "";
+    },
+    [data.entries]
+  );
+
+  const setMood = useCallback(
+    (date: Date, mood: MoodType | null, comment?: string) => {
+      const key = formatDateKey(date);
+      setData((prev) => {
+        const newEntries = { ...prev.entries };
+        if (mood === null) {
+          delete newEntries[key];
+        } else {
+          newEntries[key] = {
+            mood,
+            comment: comment ?? prev.entries[key]?.comment ?? "",
+          };
+        }
+        return { entries: newEntries };
+      });
+    },
+    []
+  );
+
+  const setComment = useCallback((date: Date, comment: string) => {
     const key = formatDateKey(date);
     setData((prev) => {
-      const newEntries = { ...prev.entries };
-      if (mood === null) {
-        delete newEntries[key];
-      } else {
-        newEntries[key] = mood;
-      }
-      return { entries: newEntries };
+      const existing = prev.entries[key];
+      if (!existing) return prev; // No mood set, can't add comment
+      return {
+        entries: {
+          ...prev.entries,
+          [key]: { ...existing, comment },
+        },
+      };
     });
   }, []);
 
@@ -61,7 +108,7 @@ export function useMoodData() {
     (year: number): MoodEntry[] => {
       return Object.entries(data.entries)
         .filter(([dateStr]) => dateStr.startsWith(String(year)))
-        .map(([date, mood]) => ({ date, mood }));
+        .map(([date, entry]) => ({ date, mood: entry.mood }));
     },
     [data.entries]
   );
@@ -70,9 +117,9 @@ export function useMoodData() {
     (year: number, month: number): Record<string, MoodType> => {
       const prefix = `${year}-${String(month + 1).padStart(2, "0")}`;
       const result: Record<string, MoodType> = {};
-      Object.entries(data.entries).forEach(([dateStr, mood]) => {
+      Object.entries(data.entries).forEach(([dateStr, entry]) => {
         if (dateStr.startsWith(prefix)) {
-          result[dateStr] = mood;
+          result[dateStr] = entry.mood;
         }
       });
       return result;
@@ -112,7 +159,9 @@ export function useMoodData() {
 
   return {
     getMood,
+    getComment,
     setMood,
+    setComment,
     getAllMoods,
     getMoodsForMonth,
     getStats,
