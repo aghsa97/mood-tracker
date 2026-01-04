@@ -3,9 +3,12 @@ import { cn } from '@/lib/utils';
 import type { MoodType } from '@/types';
 import { formatDateKey } from '@/types';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 import {
     Dialog,
     DialogContent,
+    DialogTitle,
+    DialogDescription,
 } from '@/components/ui/dialog';
 import { MoodPicker } from './MoodPicker';
 import { MoodIcon } from './MoodIcon';
@@ -92,6 +95,7 @@ export function MoodCalendar({ getMood, getComment, setMood }: MoodCalendarProps
             setSelectedDay(null);
             setPendingMood(null);
             setPendingComment('');
+            toast.success('Mood cleared');
         } else {
             setPendingMood(mood);
         }
@@ -103,6 +107,7 @@ export function MoodCalendar({ getMood, getComment, setMood }: MoodCalendarProps
             setSelectedDay(null);
             setPendingMood(null);
             setPendingComment('');
+            toast.success('Mood saved');
         }
     };
 
@@ -204,6 +209,10 @@ export function MoodCalendar({ getMood, getComment, setMood }: MoodCalendarProps
                 }
             }}>
                 <DialogContent>
+                    <DialogTitle className="sr-only">Log Your Mood</DialogTitle>
+                    <DialogDescription className="sr-only">
+                        Select how you felt on this day and add an optional note
+                    </DialogDescription>
                     {selectedDay && (
                         <MoodPicker
                             selectedMood={pendingMood}

@@ -1,130 +1,132 @@
 import { useState, useEffect, useCallback } from "react";
 import type { MoodType, MoodEntry } from "@/types";
 import { formatDateKey } from "@/types";
-
-const STORAGE_KEY = "mood-tracker-data";
+import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface DayEntry {
   mood: MoodType;
   comment?: string;
 }
 
-interface MoodData {
-  entries: Record<string, DayEntry>;
-}
-
-const loadData = (): MoodData => {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      // Migration: convert old format (string) to new format (object)
-      if (parsed.entries) {
-        const migrated: Record<string, DayEntry> = {};
-        for (const [key, value] of Object.entries(parsed.entries)) {
-          if (typeof value === "string") {
-            // Old format: just mood string
-            migrated[key] = { mood: value as MoodType };
-          } else {
-            // New format: object with mood and comment
-            migrated[key] = value as DayEntry;
-          }
-        }
-        return { entries: migrated };
-      }
-    }
-  } catch (e) {
-    console.error("Failed to load mood data:", e);
-  }
-  return { entries: {} };
-};
-
-const saveData = (data: MoodData): void => {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-  } catch (e) {
-    console.error("Failed to save mood data:", e);
-  }
-};
-
 export function useMoodData() {
-  const [data, setData] = useState<MoodData>(() => loadData());
+  const { user } = useAuth();
+  const [entries, setEntries] = useState<Record<string, DayEntry>>({});
+  const [loading, setLoading] = useState(true);
 
-  // Save to localStorage whenever data changes
+  // Load entries from Supabase when user changes
   useEffect(() => {
-    saveData(data);
-  }, [data]);
+    if (!user) {
+      setEntries({});
+      setLoading(false);
+      return;
+    }
+
+    const loadEntries = async () => {
+      setLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from("mood_entries")
+          .select("date, mood, comment")
+          .eq("user_id", user.id);
+
+        if (error) throw error;
+
+        const entriesMap: Record<string, DayEntry> = {};
+        data?.forEach((entry) => {
+          entriesMap[entry.date] = {
+            mood: entry.mood as MoodType,
+            comment: entry.comment || "",
+          };
+        });
+        setEntries(entriesMap);
+      } catch (error) {
+        console.error("Failed to load mood entries:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadEntries();
+  }, [user]);
 
   const getMood = useCallback(
     (date: Date): MoodType | null => {
       const key = formatDateKey(date);
-      return data.entries[key]?.mood || null;
+      return entries[key]?.mood || null;
     },
-    [data.entries]
+    [entries]
   );
 
   const getComment = useCallback(
     (date: Date): string => {
       const key = formatDateKey(date);
-      return data.entries[key]?.comment || "";
+      return entries[key]?.comment || "";
     },
-    [data.entries]
+    [entries]
   );
 
   const setMood = useCallback(
-    (date: Date, mood: MoodType | null, comment?: string) => {
-      const key = formatDateKey(date);
-      setData((prev) => {
-        const newEntries = { ...prev.entries };
-        if (mood === null) {
-          delete newEntries[key];
-        } else {
-          newEntries[key] = {
-            mood,
-            comment: comment ?? prev.entries[key]?.comment ?? "",
-          };
-        }
-        return { entries: newEntries };
-      });
-    },
-    []
-  );
+    async (date: Date, mood: MoodType | null, comment?: string) => {
+      if (!user) return;
 
-  const setComment = useCallback((date: Date, comment: string) => {
-    const key = formatDateKey(date);
-    setData((prev) => {
-      const existing = prev.entries[key];
-      if (!existing) return prev; // No mood set, can't add comment
-      return {
-        entries: {
-          ...prev.entries,
-          [key]: { ...existing, comment },
-        },
-      };
-    });
-  }, []);
+      const key = formatDateKey(date);
+
+      try {
+        if (mood === null) {
+          // Delete entry
+          const { error } = await supabase
+            .from("mood_entries")
+            .delete()
+            .eq("user_id", user.id)
+            .eq("date", key);
+
+          if (error) throw error;
+
+          setEntries((prev) => {
+            const newEntries = { ...prev };
+            delete newEntries[key];
+            return newEntries;
+          });
+        } else {
+          // Upsert entry
+          const { error } = await supabase.from("mood_entries").upsert(
+            {
+              user_id: user.id,
+              date: key,
+              mood,
+              comment: comment ?? entries[key]?.comment ?? "",
+              updated_at: new Date().toISOString(),
+            },
+            {
+              onConflict: "user_id,date",
+            }
+          );
+
+          if (error) throw error;
+
+          setEntries((prev) => ({
+            ...prev,
+            [key]: {
+              mood,
+              comment: comment ?? prev[key]?.comment ?? "",
+            },
+          }));
+        }
+      } catch (error) {
+        console.error("Failed to save mood:", error);
+      }
+    },
+    [user, entries]
+  );
 
   const getAllMoods = useCallback(
     (year: number): MoodEntry[] => {
-      return Object.entries(data.entries)
+      return Object.entries(entries)
         .filter(([dateStr]) => dateStr.startsWith(String(year)))
         .map(([date, entry]) => ({ date, mood: entry.mood }));
     },
-    [data.entries]
-  );
-
-  const getMoodsForMonth = useCallback(
-    (year: number, month: number): Record<string, MoodType> => {
-      const prefix = `${year}-${String(month + 1).padStart(2, "0")}`;
-      const result: Record<string, MoodType> = {};
-      Object.entries(data.entries).forEach(([dateStr, entry]) => {
-        if (dateStr.startsWith(prefix)) {
-          result[dateStr] = entry.mood;
-        }
-      });
-      return result;
-    },
-    [data.entries]
+    [entries]
   );
 
   const getStats = useCallback(
@@ -161,10 +163,9 @@ export function useMoodData() {
     getMood,
     getComment,
     setMood,
-    setComment,
     getAllMoods,
-    getMoodsForMonth,
     getStats,
-    entries: data.entries,
+    entries,
+    loading,
   };
 }
