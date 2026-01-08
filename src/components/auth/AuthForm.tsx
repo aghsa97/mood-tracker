@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { MoonCloudIcon, ArrowLeft02Icon } from '@hugeicons/core-free-icons';
 import { toast } from 'sonner';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
 
 type AuthMode = 'signin' | 'signup' | 'forgot';
 
@@ -95,7 +96,12 @@ export function AuthForm() {
     };
 
     return (
-        <div className="min-h-screen bg-muted/30 flex flex-col items-center justify-center p-4">
+        <div className="min-h-screen bg-muted/30 flex flex-col items-center justify-center p-4 relative">
+            {/* Theme toggle - top right */}
+            <div className="absolute top-4 right-4">
+                <ThemeToggle />
+            </div>
+
             {/* Logo */}
             <div className="flex items-center gap-2 mb-8">
                 <HugeiconsIcon icon={MoonCloudIcon} size={28} strokeWidth={2} />

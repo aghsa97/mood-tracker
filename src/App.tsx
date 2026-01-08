@@ -2,6 +2,7 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { AuthForm } from "@/components/auth/AuthForm";
 import { MoodTracker } from "@/components/mood-tracker/MoodTracker";
 import { Toaster } from "@/components/ui/sonner";
+import { ThemeProvider } from "next-themes";
 
 function AppContent() {
     const { user, loading } = useAuth();
@@ -23,10 +24,12 @@ function AppContent() {
 
 export function App() {
     return (
-        <AuthProvider>
-            <AppContent />
-            <Toaster position="bottom-center" richColors />
-        </AuthProvider>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+            <AuthProvider>
+                <AppContent />
+                <Toaster position="bottom-center" richColors />
+            </AuthProvider>
+        </ThemeProvider>
     );
 }
 

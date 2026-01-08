@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/card';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { Logout01Icon, Settings01Icon } from '@hugeicons/core-free-icons';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
 
 export function MoodTracker() {
     const { getMood, getComment, setMood, getStats, entries, loading } = useMoodData();
@@ -44,6 +45,7 @@ export function MoodTracker() {
                         <span className="text-sm text-muted-foreground hidden sm:block mr-2">
                             {user?.user_metadata?.full_name || user?.email}
                         </span>
+                        <ThemeToggle />
                         <Button
                             variant="ghost"
                             size="icon"
