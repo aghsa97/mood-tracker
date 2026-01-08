@@ -9,7 +9,11 @@ import { ThemeToggle } from '@/components/ui/theme-toggle';
 
 type AuthMode = 'signin' | 'signup' | 'forgot';
 
-export function AuthForm() {
+interface AuthFormProps {
+    onBack?: () => void;
+}
+
+export function AuthForm({ onBack }: AuthFormProps) {
     const { signIn, signUp, resetPassword } = useAuth();
     const [mode, setMode] = useState<AuthMode>('signin');
     const [fullName, setFullName] = useState('');
@@ -97,6 +101,20 @@ export function AuthForm() {
 
     return (
         <div className="min-h-screen bg-muted/30 flex flex-col items-center justify-center p-4 relative">
+            {/* Back to landing - top left */}
+            {onBack && (
+                <div className="absolute top-4 left-4">
+                    <button
+                        type="button"
+                        onClick={onBack}
+                        className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                        <HugeiconsIcon icon={ArrowLeft02Icon} size={16} strokeWidth={2} />
+                        Back
+                    </button>
+                </div>
+            )}
+
             {/* Theme toggle - top right */}
             <div className="absolute top-4 right-4">
                 <ThemeToggle />

@@ -1,11 +1,14 @@
+import { useState } from "react";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { AuthForm } from "@/components/auth/AuthForm";
 import { MoodTracker } from "@/components/mood-tracker/MoodTracker";
+import { LandingPage } from "@/components/landing/LandingPage";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "next-themes";
 
 function AppContent() {
     const { user, loading } = useAuth();
+    const [showAuth, setShowAuth] = useState(false);
 
     if (loading) {
         return (
@@ -15,11 +18,15 @@ function AppContent() {
         );
     }
 
-    if (!user) {
-        return <AuthForm />;
+    if (user) {
+        return <MoodTracker />;
     }
 
-    return <MoodTracker />;
+    if (showAuth) {
+        return <AuthForm onBack={() => setShowAuth(false)} />;
+    }
+
+    return <LandingPage onGetStarted={() => setShowAuth(true)} />;
 }
 
 export function App() {
