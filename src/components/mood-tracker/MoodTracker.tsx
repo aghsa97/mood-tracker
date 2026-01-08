@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { MoodCalendar } from './MoodCalendar';
 import { MoodStats } from './MoodStats';
 import { MoodTrends } from './MoodTrends';
+import { QuickMoodEntry } from './QuickMoodEntry';
 import { Button } from '@/components/ui/button';
 import { UserSettings } from '@/components/auth/UserSettings';
 import {
@@ -89,6 +90,12 @@ export function MoodTracker() {
 
             {/* Settings Dialog */}
             <UserSettings open={settingsOpen} onOpenChange={setSettingsOpen} />
+
+            {/* Quick Mood Entry FAB */}
+            <QuickMoodEntry
+                todayMood={getMood(new Date())}
+                onMoodSelect={(mood) => setMood(new Date(), mood)}
+            />
         </div>
     );
 }
