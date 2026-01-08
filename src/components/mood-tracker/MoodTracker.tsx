@@ -3,6 +3,7 @@ import { useMoodData } from '@/hooks/useMoodData';
 import { useAuth } from '@/contexts/AuthContext';
 import { MoodCalendar } from './MoodCalendar';
 import { MoodStats } from './MoodStats';
+import { MoodTrends } from './MoodTrends';
 import { Button } from '@/components/ui/button';
 import { UserSettings } from '@/components/auth/UserSettings';
 import {
@@ -16,7 +17,7 @@ import { HugeiconsIcon } from '@hugeicons/react';
 import { Logout01Icon, Settings01Icon } from '@hugeicons/core-free-icons';
 
 export function MoodTracker() {
-    const { getMood, getComment, setMood, getStats, loading } = useMoodData();
+    const { getMood, getComment, setMood, getStats, entries, loading } = useMoodData();
     const { user, signOut } = useAuth();
     const [settingsOpen, setSettingsOpen] = useState(false);
 
@@ -60,20 +61,26 @@ export function MoodTracker() {
 
                 {/* Main content - responsive grid */}
                 <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
-                    {/* Calendar section */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Calendar</CardTitle>
-                            <CardDescription>
-                                Click on a day to log how you felt
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <MoodCalendar getMood={getMood} getComment={getComment} setMood={setMood} />
-                        </CardContent>
-                    </Card>
+                    {/* Left column - Calendar and Trends */}
+                    <div className="flex flex-col gap-6">
+                        {/* Calendar section */}
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Calendar</CardTitle>
+                                <CardDescription>
+                                    Click on a day to log how you felt
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <MoodCalendar getMood={getMood} getComment={getComment} setMood={setMood} />
+                            </CardContent>
+                        </Card>
 
-                    {/* Stats section */}
+                        {/* Trends section */}
+                        <MoodTrends entries={entries} />
+                    </div>
+
+                    {/* Right column - Stats */}
                     <MoodStats getStats={getStats} />
                 </div>
             </div>
